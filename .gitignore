@@ -1,0 +1,11 @@
+.env
+edushield/.env
+edushield/output/
+edushield/*.zip
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.gradio/
+
