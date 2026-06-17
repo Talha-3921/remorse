@@ -2,7 +2,7 @@
 
 Hackathon project: **EduShield**, a Python/Gradio privacy-audit app for Pakistani university students.
 
-The app lives in [`edushield/`](edushield/). It generates ethical manual Google dorks, visual remediation cards, English/Urdu audio guidance, checklists, and a downloadable offline ZIP report.
+The app lives in [`edushield/`](edushield/). It generates AI-created Google dorks at runtime, checks them through Google Custom Search JSON API, matches snippets/meta against the full user context, creates site-specific removal guidance, visual cards, English/Urdu audio, checklists, and a downloadable offline ZIP report.
 
 ## Run
 

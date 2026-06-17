@@ -8,6 +8,7 @@ from src.tools.audio_engine import generate_audio_pair
 from src.tools.dork_generator import generate_dorks
 from src.tools.grounding import ground_category
 from src.tools.image_engine import generate_visual_card
+from src.tools.search_engine import search_category
 
 
 MISUSE_TERMS = {
@@ -27,19 +28,21 @@ def _looks_like_misuse(user_input: str) -> bool:
 
 
 def _fallback_checklist(category: dict) -> dict:
+    findings = category.get("findings", [])
+    target = findings[0].get("site_name") if findings else "the matched site"
     return {
         "items": [
             {
-                "step": "Manual search",
-                "action": "Paste at least two dorks into Google and mark whether exact personal details appear.",
+                "step": "Verify evidence",
+                "action": "Open the matched URL manually and confirm the snippet/page belongs to you.",
             },
             {
-                "step": "Removal request",
-                "action": "Send the exposed URL and screenshot to the university or site owner for removal.",
+                "step": "Contact owner",
+                "action": f"Send the exact URL, screenshot, and exposed fields to {target}'s privacy or webmaster contact.",
             },
             {
-                "step": "Re-check",
-                "action": "Repeat the same dorks after 3-7 days and record whether the exposure disappeared.",
+                "step": "Refresh search",
+                "action": "After removal, request Google outdated-content refresh and re-run the same dork.",
             },
         ]
     }
@@ -86,6 +89,8 @@ def run_pipeline(user_input: str) -> dict:
     trace.append("Pipeline started.")
     user_info = parse_user_info(user_input)
     categories = deconstruct_exposures(user_info)
+    for category in categories:
+        category["full_user_context"] = user_info
     trace.append(f"Deconstructor produced {len(categories)} categories.")
     style_prefix = (
         "Use a clean civic-tech visual style for Pakistani university privacy guidance: "
@@ -98,6 +103,11 @@ def run_pipeline(user_input: str) -> dict:
         trace.append(f"[{index}/{len(categories)}] {current['category_title']}: dork generator started.")
         current = generate_dorks(current)
         trace.append(f"[{index}/{len(categories)}] generated {len(current.get('dorks', []))} dorks.")
+        current = search_category(current)
+        trace.append(
+            f"[{index}/{len(categories)}] searched {current.get('search_results_checked', 0)} results; "
+            f"kept {len(current.get('findings', []))} snippet/meta findings."
+        )
         current = ground_category(current)
         visual_path = generate_visual_card(current, style_prefix)
         current["visual_path"] = visual_path
@@ -122,4 +132,3 @@ def run_pipeline(user_input: str) -> dict:
             "Manual public search only. Do not scrape, bypass logins, access private accounts, or investigate other people without consent."
         ),
     }
-

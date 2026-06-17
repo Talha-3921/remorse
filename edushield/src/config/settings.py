@@ -15,6 +15,11 @@ FALLBACK_IMAGE_MODEL = "dall-e-2"
 REASONING_MODEL = os.getenv("REASONING_MODEL", "gpt-4o").strip() or "gpt-4o"
 FAST_MODEL = os.getenv("FAST_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
 TTS_MODEL = os.getenv("TTS_MODEL", "gpt-4o-mini-tts").strip() or "gpt-4o-mini-tts"
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "").strip()
+GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID", "").strip()
+MAX_DORKS_TO_SEARCH = int(os.getenv("MAX_DORKS_TO_SEARCH", "6"))
+SEARCH_RESULTS_PER_DORK = int(os.getenv("SEARCH_RESULTS_PER_DORK", "5"))
+MAX_FINDINGS_PER_CATEGORY = int(os.getenv("MAX_FINDINGS_PER_CATEGORY", "8"))
 
 WCAG_PROMPT = (
     "high-contrast schematic illustration, WCAG AA compliant, minimum 4.5:1 "

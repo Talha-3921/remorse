@@ -29,6 +29,71 @@ def _checklist_html(items: list[dict], prefix: str) -> str:
     return "\n".join(rendered)
 
 
+def _findings_html(findings: list[dict]) -> str:
+    if not findings:
+        return "<p>No strong Google snippet/meta findings were returned. Use the dorks for manual follow-up.</p>"
+    cards = []
+    for finding in findings:
+        title = html.escape(str(finding.get("title", "Untitled result")))
+        url = html.escape(str(finding.get("url", "")))
+        site = html.escape(str(finding.get("site_name", "")))
+        snippet = html.escape(str(finding.get("snippet") or finding.get("meta_description") or ""))
+        score = html.escape(str(finding.get("match_score", 0)))
+        reason = html.escape(str(finding.get("match_reason", "")))
+        terms = ", ".join(str(x) for x in finding.get("matched_context_terms", []))
+        cards.append(
+            f"""
+            <article class="finding">
+              <h4>{title}</h4>
+              <p><strong>Site:</strong> {site} <strong>Match score:</strong> {score}/100</p>
+              <p>{snippet}</p>
+              <p><strong>Why:</strong> {reason}</p>
+              <p><strong>Matched terms:</strong> {html.escape(terms or "none shown")}</p>
+              <p><a href="{url}">{url}</a></p>
+            </article>
+            """
+        )
+    return "\n".join(cards)
+
+
+def _policy_html(policies: list[dict]) -> str:
+    if not policies:
+        return "<p>No site-specific policy route found yet. Verify any match manually, then contact the site owner.</p>"
+    blocks = []
+    for policy in policies:
+        site = html.escape(str(policy.get("site", "site owner")))
+        route = html.escape(str(policy.get("removal_route", "")))
+        evidence = html.escape(str(policy.get("evidence_url", "")))
+        queries = "".join(
+            f"<li><code>{html.escape(str(query))}</code></li>"
+            for query in policy.get("policy_queries", [])
+        )
+        blocks.append(
+            f"""
+            <article class="policy">
+              <h4>{site}</h4>
+              <p>{route}</p>
+              {'<p><strong>Evidence URL:</strong> <a href="' + evidence + '">' + evidence + '</a></p>' if evidence else ''}
+              <ul>{queries}</ul>
+            </article>
+            """
+        )
+    return "\n".join(blocks)
+
+
+def _search_status_html(category: dict) -> str:
+    checked = html.escape(str(category.get("search_results_checked", 0)))
+    errors = category.get("search_errors", [])
+    if not errors:
+        return f"<p class='search-ok'>Google results checked: {checked}</p>"
+    rendered = "".join(f"<li>{html.escape(str(error))}</li>" for error in errors[:3])
+    return (
+        f"<div class='search-warn'><strong>Google Search status:</strong> "
+        f"Checked {checked} results. Some searches failed. "
+        f"<ul>{rendered}</ul></div>"
+    )
+
+
 def build_report_html(pipeline_result: dict) -> str:
     sections = []
     for idx, category in enumerate(pipeline_result.get("categories", []), start=1):
@@ -38,6 +103,9 @@ def build_report_html(pipeline_result: dict) -> str:
         audio_ur_uri = _data_uri(category.get("audio_ur"), "audio/mpeg")
         dorks = category.get("dorks", [])
         dork_items = "".join(f"<li><code>{html.escape(str(dork))}</code></li>" for dork in dorks)
+        findings = _findings_html(category.get("findings", []))
+        policies = _policy_html(category.get("site_policy_research", []))
+        search_status = _search_status_html(category)
         checklist = _checklist_html(category.get("checklist", {}).get("items", []), f"cat-{idx}")
         fallback_note = (
             "<p class='note'>Urdu translation fell back to English guidance.</p>"
@@ -54,6 +122,11 @@ def build_report_html(pipeline_result: dict) -> str:
                 <div><h3>English Instructions</h3>{'<audio controls src="' + audio_en_uri + '"></audio>' if audio_en_uri else '<p>Audio unavailable.</p>'}</div>
                 <div><h3>Urdu Instructions</h3>{'<audio controls src="' + audio_ur_uri + '"></audio>' if audio_ur_uri else '<p>Audio unavailable.</p>'}{fallback_note}</div>
               </div>
+              {search_status}
+              <h3>Snippet/Meta Findings</h3>
+              {findings}
+              <h3>Site-Specific Removal Research</h3>
+              {policies}
               <h3>Manual Google Dorks</h3>
               <ol>{dork_items}</ol>
               <h3>Checklist</h3>
@@ -83,6 +156,9 @@ def build_report_html(pipeline_result: dict) -> str:
     code {{ white-space: pre-wrap; color: #06283D; font-weight: 700; }}
     .check {{ display: block; padding: 12px; border: 2px solid #BFD7EA; margin: 10px 0; }}
     .check span {{ display: block; margin-left: 28px; }}
+    .finding, .policy {{ border: 2px solid #BFD7EA; padding: 14px; margin: 12px 0; overflow-wrap: anywhere; }}
+    .search-warn {{ border-left: 8px solid #DC2626; background: #FEF2F2; padding: 12px; margin: 14px 0; overflow-wrap: anywhere; }}
+    .search-ok {{ border-left: 8px solid #16A34A; background: #F0FDF4; padding: 12px; }}
     .badge {{ background: #FEF3C7; color: #78350F; padding: 4px 8px; font-size: 0.8em; }}
     .note {{ color: #7C2D12; font-weight: 700; }}
   </style>
@@ -126,4 +202,3 @@ def bundle_offline_package(pipeline_result: dict, out_dir: str) -> str:
         for file_path in package_dir.rglob("*"):
             archive.write(file_path, file_path.relative_to(package_dir))
     return str(zip_path)
-
